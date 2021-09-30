@@ -1,13 +1,45 @@
 from tkinter import *
-from PIL import Image, ImageTk
+import io
+from PIL import Image, ImageTk, ImageGrab
 from functools import partial
 from time import sleep
+import GaganMock
+import os
+
+''' Make the locations global variables so we can easily change with Gagan's values '''
+
+# the 'goodness' of the cover nodes can be imported from Gagan's file
+global_goodness = 50
+
+# we will be fed in 1400x32
+global_width = 1400 
+global_height = 1000
+
+# to keep track of the paths taken thus far
+# TODO: implement this logic
+global_paths_completed = 0
+
+# offset is used to ensure we start the paths at the bottom of the pins and not top left 
+offset = [19, 33]
+
+# we place the images without offsets
+global_start_1_image = [100, 100]
+global_start_2_image = [900, 100]
+global_start_3_image = [100, 600]
+global_end_image = [500, 500] 
+# we draw the paths with offsets
+global_start_1 = [100 + offset[0], 100 + offset[1]] 
+global_start_2 = [900 + offset[0], 100 + offset[1]] 
+global_start_3 = [100 + offset[0], 600 + offset[1]]
+global_end = [500 + offset[0], 500 + offset[1]] 
+
+# list of lists for the covers and obstacles
+global_covers = GaganMock.covers
+global_obstacles = GaganMock.obstacles
 
 # func for the window
-def app_window(app, root, canvas1, start_color, end_color, cover_color, obstacle_color, path_color, 
-start1, start2, start3, end, cover1, cover2, cover3, cover4, cover5, obstacle1,
-obstacle2, obstacle3, obstacle4, obstacle5, obstacle6, obstacle7, obstacle8, 
-obstacle9, obstacle10, obstacle11, obstacle12, obstacle13, obstacle14, obstacle15, obstacle16):
+def app_window(app, root, canvas, start_color, end_color, cover_color, obstacle_color, path_color, 
+start1, start2, start3, end, covers, obstacles):
 
     root.geometry('1000x1000') # for the size of the GUI
 
@@ -15,251 +47,108 @@ obstacle9, obstacle10, obstacle11, obstacle12, obstacle13, obstacle14, obstacle1
     icon = PhotoImage(file = 'images/drone.png')
     root.iconphoto(False, icon)
 
-    # place the starting squad color on the map image
-    canvas1.create_image((start1), image=start_color, anchor=NW)
-    canvas1.create_image((start2), image=start_color, anchor=NW)
-    canvas1.create_image((start3), image=start_color, anchor=NW)
+    # place the starting squad node on the map image
+    canvas.create_image((start1), image=start_color, anchor=NW)
+    canvas.create_image((start2), image=start_color, anchor=NW)
+    canvas.create_image((start3), image=start_color, anchor=NW)
 
-    # place the end node color on the map
-    canvas1.create_image((end), image=end_color, anchor=NW)
+    # place the end node node on the map
+    canvas.create_image((end), image=end_color, anchor=NW)
 
     # position for the cover nodes 
-    canvas1.create_image((cover1), image=cover_color, anchor=NW)
-    canvas1.create_image((cover2), image=cover_color, anchor=NW)
-    canvas1.create_image((cover3), image=cover_color, anchor=NW)
-    canvas1.create_image((cover4), image=cover_color, anchor=NW)
-    canvas1.create_image((cover5), image=cover_color, anchor=NW)
+    for cover in covers:
+        canvas.create_image((cover), image=cover_color, anchor=NW)
 
-    # position for the obstacles nodes
-    canvas1.create_image((obstacle1), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle2), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle3), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle4), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle5), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle6), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle7), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle8), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle9), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle10), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle11), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle12), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle13), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle14), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle15), image=obstacle_color, anchor=NW)
-    canvas1.create_image((obstacle16), image=obstacle_color, anchor=NW)
-
+    # place magenta over the obstacle nodes
+    for obstacle in obstacles: 
+        canvas.create_image((obstacle), image=obstacle_color, anchor=NW)
+    
 class App:
-    def __init__(self, root, canvas1, start_color, end_color, cover_color, obstacle_color, path_color, start1 = [], 
-    start2 = [], start3 = [], end = [], cover1 = [], cover2 = [], cover3 = [], cover4 = [], cover5 = [], obstacle1 = [],
-    obstacle2 = [], obstacle3 = [], obstacle4 = [], obstacle5 = [], obstacle6 = [], obstacle7 = [], obstacle8 = [], obstacle9 = [], 
-    obstacle10 = [], obstacle11 = [], obstacle12 = [], obstacle13 = [], obstacle14 = [], obstacle15 = [], obstacle16 = []):
+    def __init__(self, root, canvas, start_color, end_color, cover_color, obstacle_color, path_color, start1 = [], 
+    start2 = [], start3 = [], end = [], covers = [[]], obstacles = [[]]):
         
-        root.wm_title("403 Project Demo")
+        root.wm_title("404 Project - Third Run")
         
         self.root = root
-        self.canvas1 = canvas1
+        self.canvas = canvas
         self.start_color = start_color
         self.end_color = end_color
         self.cover_color = cover_color
         self.obstacle_color = obstacle_color
         self.path_color = path_color
-        self.start1 = [100,100]         # keep all paths on a diagonal to the goal node
-        self.start2 = [900, 100]        
-        self.start3 = [100, 900]
+        self.start1 = global_start_1         # keep all paths on a diagonal to the goal node
+        self.start2 = global_start_2     
+        self.start3 = global_start_3
 
-        self.end = [500, 500]           # keep obstacle in the center for easy testing
+        self.end = global_end           # keep obstacle in the center for easy testing
 
-        self.cover1 = [220, 220]        # for squad 1 testing
-        self.cover2 = [770, 220]        # squad 2
-        self.cover3 = [220, 770]        # squad 3
-        self.cover4 = [700, 700]  
-        self.cover5 = [800, 900]
-
-        self.obstacle1 = [200, 200]     # make obstacles of 4 adjacent pixels for better visibility
-        self.obstacle2 = [201, 200]
-        self.obstacle3 = [200, 201]
-        self.obstacle4 = [201, 201]
-
-        self.obstacle5 = [200, 800]     # obstacle 2
-        self.obstacle6 = [201, 800]
-        self.obstacle7 = [200, 801]
-        self.obstacle8 = [201, 801]
-
-        self.obstacle9 = [800, 200]     # obstacle 3
-        self.obstacle10 = [801, 200]
-        self.obstacle11 = [800, 201]
-        self.obstacle12 = [801, 201]
-
-        self.obstacle13 = [800, 800]     # obstacle 4
-        self.obstacle14 = [801, 800]
-        self.obstacle15 = [800, 801]
-        self.obstacle16 = [801, 801]
-
-        # starting positions of everything will be hard-coded for now - will need to get from Gagan later
-        start1 = [100,100]         # keep all paths on a diagonal to the goal node - this way we can easily implement cover node logic
-        start2 = [900, 100]        
-        start3 = [100, 900]
-
-        end = [500, 500]           # keep obstacle in the center for easy testing
-        
-        cover1 = [220, 220]        # squad 1
-        cover2 = [770, 220]        # squad 2
-        cover3 = [220, 770]        # squad 3
-        cover4 = [700, 700]        
-        cover5 = [800, 900]
-
-        obstacle1 = [200, 200]     # obstacle 1
-        obstacle2 = [201, 200]
-        obstacle3 = [200, 201]
-        obstacle4 = [201, 201]
-
-        obstacle5 = [200, 800]     # obstacle 2
-        obstacle6 = [201, 800]
-        obstacle7 = [200, 801]
-        obstacle8 = [201, 801]
-
-        obstacle9 = [800, 200]     # obstacle 3
-        obstacle10 = [801, 200]
-        obstacle11 = [800, 201]
-        obstacle12 = [801, 201]
-
-        obstacle13 = [800, 800]     # obstacle 4
-        obstacle14 = [801, 800]
-        obstacle15 = [800, 801]
-        obstacle16 = [801, 801]
+        self.obstacles = obstacles
+        self.covers = covers
 
         # create the pop-up window
         root.update_idletasks()
-        app_window(self, root, canvas1, start_color, end_color, cover_color, obstacle_color, path_color, 
-        start1, start2, start3, end, cover1, cover2, cover3, cover4, cover5, obstacle1,
-        obstacle2, obstacle3, obstacle4, obstacle5, obstacle6, obstacle7, obstacle8, 
-        obstacle9, obstacle10, obstacle11, obstacle12, obstacle13, obstacle14, obstacle15, obstacle16)
+        app_window(self, root, canvas, start_color, end_color, cover_color, obstacle_color, path_color, 
+        global_start_1_image, global_start_2_image, global_start_3_image, global_end_image, global_covers, global_obstacles)
 
-    # heuristic function to find the minimum amount we need
     def heuristic(self, node1, node2):
-        # implement distance formula
         return abs(node1[0] - node2[0]) + abs(node1[1]-node2[1])
+
+    # function to abstract checking the neighbors so we have less code
+    def check_neighboring_nodes(self, main_node):
+        # can do something like
+        for obstacle in self.obstacles:
+            if 0 <= main_node[1] < global_width and main_node != obstacle:
+                return True
+        return False
 
     # function to find the neighbors - pass all five obstacles - will need to iterate over the 1000x1000 GUI
     def find_neighbors(self, current):
         # create an empty list for the neighbors
         neighbors = []
 
-        right_neighbor = current[:] # create new list for the right neighbor
+        right_neighbor = current[:] 
         right_neighbor[1] = current[1] + 1 
-
-        # check the right neighbor for all five obstacles
-        if 0 <= right_neighbor[1] < 1000 and right_neighbor != self.obstacle1 \
-            and right_neighbor != self.obstacle2 and right_neighbor != self.obstacle3 \
-            and right_neighbor != self.obstacle4 and right_neighbor != self.obstacle5 \
-            and right_neighbor != self.obstacle6 and right_neighbor != self.obstacle7 \
-            and right_neighbor != self.obstacle8 and right_neighbor != self.obstacle9 \
-            and right_neighbor != self.obstacle10 and right_neighbor != self.obstacle11 \
-            and right_neighbor != self.obstacle12 and right_neighbor != self.obstacle13 \
-            and right_neighbor != self.obstacle14 and right_neighbor != self.obstacle15 \
-            and right_neighbor != self.obstacle16:
+        if self.check_neighboring_nodes(right_neighbor):
             neighbors.append(right_neighbor)
+            neighbors.append(right_neighbor)
+
         left_neighbor = current[:]
         left_neighbor[1] = current[1] - 1
-
-        # check the left neighbor
-        if 0 <= left_neighbor[1] < 1000 and left_neighbor != self.obstacle1 \
-            and left_neighbor != self.obstacle2 and left_neighbor != self.obstacle3 \
-            and left_neighbor != self.obstacle4 and left_neighbor != self.obstacle5 \
-            and left_neighbor != self.obstacle6 and left_neighbor != self.obstacle7 \
-            and left_neighbor != self.obstacle8 and left_neighbor != self.obstacle9 \
-            and left_neighbor != self.obstacle10 and left_neighbor != self.obstacle11 \
-            and left_neighbor != self.obstacle12 and left_neighbor != self.obstacle13 \
-            and left_neighbor != self.obstacle14 and left_neighbor != self.obstacle15 \
-            and left_neighbor != self.obstacle16:
+        if self.check_neighboring_nodes(left_neighbor):
             neighbors.append(left_neighbor)
+
         up_neighbor = current[:]
         up_neighbor[0] = current[0] + 1
-
-        # check the neighbor above
-        if 0 <= up_neighbor[0] < 1000 and up_neighbor != self.obstacle1 \
-            and up_neighbor != self.obstacle2 and up_neighbor != self.obstacle3 \
-            and up_neighbor != self.obstacle4 and up_neighbor != self.obstacle5 \
-            and up_neighbor != self.obstacle6 and up_neighbor != self.obstacle7 \
-            and up_neighbor != self.obstacle8 and up_neighbor != self.obstacle9 \
-            and up_neighbor != self.obstacle10 and up_neighbor != self.obstacle11 \
-            and up_neighbor != self.obstacle12 and up_neighbor != self.obstacle13 \
-            and up_neighbor != self.obstacle14 and up_neighbor != self.obstacle15 \
-            and up_neighbor != self.obstacle16:
+        if self.check_neighboring_nodes(up_neighbor):
             neighbors.append(up_neighbor)
+
         down_neighbor = current[:]
         down_neighbor[0] = current[0] - 1
-
-        # check the neighbor below
-        if 0 <= down_neighbor[0] < 1000 and down_neighbor != self.obstacle1 \
-            and down_neighbor != self.obstacle2 and down_neighbor != self.obstacle3 \
-            and down_neighbor != self.obstacle4 and down_neighbor != self.obstacle5 \
-            and down_neighbor != self.obstacle6 and down_neighbor != self.obstacle7 \
-            and down_neighbor != self.obstacle8 and down_neighbor != self.obstacle9 \
-            and down_neighbor != self.obstacle10 and down_neighbor != self.obstacle11 \
-            and down_neighbor != self.obstacle12 and down_neighbor != self.obstacle13 \
-            and down_neighbor != self.obstacle14 and down_neighbor != self.obstacle15 \
-            and down_neighbor != self.obstacle16:
+        if self.check_neighboring_nodes(down_neighbor):
             neighbors.append(down_neighbor)
+
         down_right_neighbor = current[:]
         down_right_neighbor[0] = current[0] + 1
         down_right_neighbor[1] = current[1] + 1
-
-        # check the neighbor below and to the right
-        if 0 <= down_right_neighbor[0] < 1000 and down_right_neighbor != self.obstacle1 \
-            and down_right_neighbor != self.obstacle2 and down_right_neighbor != self.obstacle3 \
-            and down_right_neighbor != self.obstacle4 and down_right_neighbor != self.obstacle5 \
-            and down_right_neighbor != self.obstacle6 and down_right_neighbor != self.obstacle7 \
-            and down_right_neighbor != self.obstacle8 and down_right_neighbor != self.obstacle9 \
-            and down_right_neighbor != self.obstacle10 and down_right_neighbor != self.obstacle11 \
-            and down_right_neighbor != self.obstacle12 and down_right_neighbor != self.obstacle13 \
-            and down_right_neighbor != self.obstacle14 and down_right_neighbor != self.obstacle15 \
-            and down_right_neighbor != self.obstacle16:
+        if self.check_neighboring_nodes(down_right_neighbor):
             neighbors.append(down_right_neighbor)
+
         up_right_neighbor = current[:]
         up_right_neighbor[0] = current[0] - 1
         up_right_neighbor[1] = current[1] + 1
-
-        # check the neighbor above and to the right
-        if 0 <= up_right_neighbor[0] < 1000 and up_right_neighbor != self.obstacle1 \
-            and up_right_neighbor != self.obstacle2 and up_right_neighbor != self.obstacle3 \
-            and up_right_neighbor != self.obstacle4 and up_right_neighbor != self.obstacle5 \
-            and up_right_neighbor != self.obstacle6 and up_right_neighbor != self.obstacle7 \
-            and up_right_neighbor != self.obstacle8 and up_right_neighbor != self.obstacle9 \
-            and up_right_neighbor != self.obstacle10 and up_right_neighbor != self.obstacle11 \
-            and up_right_neighbor != self.obstacle12 and up_right_neighbor != self.obstacle13 \
-            and up_right_neighbor != self.obstacle14 and up_right_neighbor != self.obstacle15 \
-            and up_right_neighbor != self.obstacle16:
+        if self.check_neighboring_nodes(up_right_neighbor):
             neighbors.append(up_right_neighbor)
+
         up_left_neighbor = current[:]
         up_left_neighbor[0] = current[0] - 1
         up_left_neighbor[1] = current[1] - 1
-
-        # check the neighbor above and to the left
-        if 0 <= up_left_neighbor[0] < 1000 and up_left_neighbor != self.obstacle1 \
-            and up_left_neighbor != self.obstacle2 and up_left_neighbor != self.obstacle3 \
-            and up_left_neighbor != self.obstacle4 and up_left_neighbor != self.obstacle5 \
-            and up_left_neighbor != self.obstacle6 and up_left_neighbor != self.obstacle7 \
-            and up_left_neighbor != self.obstacle8 and up_left_neighbor != self.obstacle9 \
-            and up_left_neighbor != self.obstacle10 and up_left_neighbor != self.obstacle11 \
-            and up_left_neighbor != self.obstacle12 and up_left_neighbor != self.obstacle13 \
-            and up_left_neighbor != self.obstacle14 and up_left_neighbor != self.obstacle15 \
-            and up_left_neighbor != self.obstacle16:
+        if self.check_neighboring_nodes(up_left_neighbor):
             neighbors.append(up_left_neighbor)
+
         down_left_neighbor = current[:]
         down_left_neighbor[0] = current[0] + 1
         down_left_neighbor[1] = current[1] - 1
-
-        # check the neighbor below and to the left
-        if 0 <= down_left_neighbor[0] < 1000 and down_left_neighbor != self.obstacle1 \
-            and down_left_neighbor != self.obstacle2 and down_left_neighbor != self.obstacle3 \
-            and down_left_neighbor != self.obstacle4 and down_left_neighbor != self.obstacle5 \
-            and down_left_neighbor != self.obstacle6 and down_left_neighbor != self.obstacle7 \
-            and down_left_neighbor != self.obstacle8 and down_left_neighbor != self.obstacle9 \
-            and down_left_neighbor != self.obstacle10 and down_left_neighbor != self.obstacle11 \
-            and down_left_neighbor != self.obstacle12 and down_left_neighbor != self.obstacle13 \
-            and down_left_neighbor != self.obstacle14 and down_left_neighbor != self.obstacle15 \
-            and down_left_neighbor != self.obstacle16:
+        if self.check_neighboring_nodes(down_left_neighbor):
             neighbors.append(down_left_neighbor)
         return neighbors
 
@@ -279,25 +168,25 @@ class App:
         for value in sorted_copy:
             min_ = index_to_fscore.index(value)
             sorted_open_set.append(open_set[min_])
-            # We mark that we have transfered this value to the sorted array
+            # We mark that we have transferred this value to the sorted array
             index_to_fscore[min_] = float('inf')
 
         return sorted_open_set
 
     # implement the actual algorithm
-    def a_star_algorithm(self, canvas1, start, end):
+    def a_star_algorithm(self, canvas, start, end):
         # create an open set for the start nodes
         open_set = [start] 
         g_score = [] # cost so far to reach the node
         f_score = [] # total estimated cost of path through node  
         came_from = []
 
-        # Initialiazation of f_score, g_score and came_from - make these lists full of infinitely large numbers 
-        for i in range(1000):
+        # Initializations of f_score, g_score and came_from - make these lists full of infinitely large numbers 
+        for i in range(global_width):
             f_score.append([])
             g_score.append([])
             came_from.append([])
-            for j in range(1000):
+            for j in range(global_height):
                 infinity = float('inf')
                 came_from[i].append([])
                 g_score[i].append(infinity)  # set it to infinity
@@ -319,7 +208,7 @@ class App:
 
             # once we have reached the end, construct the best path
             if current == end:
-                return self.reconstruct_path(canvas1, came_from, current)
+                return self.reconstruct_path(canvas, came_from, current)
 
             # find the neighbors of the current node
             open_set.remove(current)
@@ -342,175 +231,110 @@ class App:
                     came_from[node_row][node_column].append(current_column)
                     g_score[node_row][node_column] = tentative_gScore
                     f_score[node_row][node_column] = g_score[node_row][node_column] + self.heuristic(node, end) # changed end from self.end
-
                     if node not in open_set:
                         open_set.append(node[:])
 
+    def cover_logic(self, path, start, cover_number, goodness):
+        #TODO: import the 'goodness' of cover from Gagan
+        if path == self.heuristic(start, cover_number) and cover_number[0] < max(self.end[0], start[0]) + goodness and \
+            cover_number[0] > min(self.end[0], start[0]) - goodness and \
+            cover_number[1] < max(self.end[1], start[1]) + goodness and \
+            cover_number[1] > min(self.end[1], start[1]) - goodness:
+            return True
+        return False
+
+    def connect_cover(self, start, cover):
+        self.a_star_algorithm(self.canvas, start, cover) 
+        self.a_star_algorithm(self.canvas, cover, self.end) 
+
+    def find_cover_to_take(self, path, start):
+        # iterate through the cover nodes and check all of them, as soon as we find one, break out of the loop 
+        # once we have all three paths, we can close out
+        cover_taken = False
+        for cover in self.covers:  
+            # this is checking all cover nodes, and will take a path if it is convenient to do so
+            # TODO: allow for more than one path to be taken
+            if self.cover_logic(path, start, cover, global_goodness):
+                cover_taken = True
+                self.connect_cover(start, cover) 
+        if not cover_taken:
+            self.connect_cover(start, global_end_image)
+
+
     # find the paths needed - ADD COVER LOGIC HERE
-    def find_path(self, event):
-        # go to the shortest cover - NEED logic to compare if there are two paths that have cover
-        
-        # LOGIC FOR START 1 (FIRST SQUAD)
-        # compare the distances for all five cover nodes from the starting node, then check if the lowest one satisfies the if statement, if so, go
-        path1 = min(self.heuristic(self.start1, self.cover1), self.heuristic(self.start1, self.cover2), \
-            self.heuristic(self.start1, self.cover3), self.heuristic(self.start1, self.cover4), self.heuristic(self.start1, self.cover5))
-        
-        if path1 == self.heuristic(self.start1, self.cover1) and self.cover1[0] < max(self.end[0], self.start1[0]) + 50 and \
-            self.cover1[0] > min(self.end[0], self.start1[0]) - 50 and \
-            self.cover1[1] < max(self.end[1], self.start1[1]) + 50 and \
-            self.cover1[1] > min(self.end[1], self.start1[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start1, self.cover1) 
-            self.a_star_algorithm(self.canvas1, self.cover1, self.end) 
+    def find_path(self, event):        
+        # compare the distances for all five cover nodes from the starting nodes
+        path1 = min(self.heuristic(self.start1, cover) for cover in self.covers)
+        path2 = min(self.heuristic(self.start2, cover) for cover in self.covers)
+        path3 = min(self.heuristic(self.start3, cover) for cover in self.covers)
 
-        elif path1 == self.heuristic(self.start1, self.cover2) and self.cover2[0] < max(self.end[0], self.start1[0]) + 50 and \
-            self.cover2[0] > min(self.end[0], self.start1[0]) - 50 and \
-            self.cover2[1] < max(self.end[1], self.start1[1]) + 50 and \
-            self.cover2[1] > min(self.end[1], self.start1[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start1, self.cover2) 
-            self.a_star_algorithm(self.canvas1, self.cover2, self.end) 
-
-        elif path1 == self.heuristic(self.start1, self.cover3) and self.cover3[0] < max(self.end[0], self.start1[0]) + 50 and \
-            self.cover3[0] > min(self.end[0], self.start1[0]) - 50 and \
-            self.cover3[1] < max(self.end[1], self.start1[1]) + 50 and \
-            self.cover3[1] > min(self.end[1], self.start1[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start1, self.cover3) 
-            self.a_star_algorithm(self.canvas1, self.cover3, self.end) 
-
-        elif path1 == self.heuristic(self.start1, self.cover4) and self.cover4[0] < max(self.end[0], self.start1[0]) + 50 and \
-            self.cover4[0] > min(self.end[0], self.start1[0]) - 50 and \
-            self.cover4[1] < max(self.end[1], self.start1[1]) + 50 and \
-            self.cover4[1] > min(self.end[1], self.start1[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start1, self.cover4) 
-            self.a_star_algorithm(self.canvas1, self.cover4, self.end) 
-
-        elif path1 == self.heuristic(self.start1, self.cover5) and self.cover5[0] < max(self.end[0], self.start1[0]) + 50 and \
-            self.cover5[0] > min(self.end[0], self.start1[0]) - 50 and \
-            self.cover5[1] < max(self.end[1], self.start1[1]) + 50 and \
-            self.cover5[1] > min(self.end[1], self.start1[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start1, self.cover5) 
-            self.a_star_algorithm(self.canvas1, self.cover5, self.end) 
-
-        else: 
-            self.a_star_algorithm(self.canvas1, self.start1, self.end) 
-
-        #LOGIC FOR START 2
-        path2 = min(self.heuristic(self.start2, self.cover1), self.heuristic(self.start2, self.cover2), \
-            self.heuristic(self.start2, self.cover3), self.heuristic(self.start2, self.cover4), self.heuristic(self.start2, self.cover5))
-        
-        if path2 == self.heuristic(self.start2, self.cover1) and self.cover1[0] < max(self.end[0], self.start2[0]) + 50 and \
-            self.cover1[0] > min(self.end[0], self.start2[0]) - 50 and \
-            self.cover1[1] < max(self.end[1], self.start2[1]) + 50 and \
-            self.cover1[1] > min(self.end[1], self.start2[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start2, self.cover1) 
-            self.a_star_algorithm(self.canvas1, self.cover1, self.end) 
-
-        elif path2 == self.heuristic(self.start2, self.cover2) and self.cover2[0] < max(self.end[0], self.start2[0]) + 50 and \
-            self.cover2[0] > min(self.end[0], self.start2[0]) - 50 and \
-            self.cover2[1] < max(self.end[1], self.start2[1]) + 50 and \
-            self.cover2[1] > min(self.end[1], self.start2[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start2, self.cover2) 
-            self.a_star_algorithm(self.canvas1, self.cover2, self.end) 
-
-        elif path2 == self.heuristic(self.start2, self.cover3) and self.cover3[0] < max(self.end[0], self.start2[0]) + 50 and \
-            self.cover3[0] > min(self.end[0], self.start2[0]) - 50 and \
-            self.cover3[1] < max(self.end[1], self.start2[1]) + 50 and \
-            self.cover3[1] > min(self.end[1], self.start2[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start2, self.cover3) 
-            self.a_star_algorithm(self.canvas1, self.cover3, self.end) 
-
-        elif path2 == self.heuristic(self.start2, self.cover4) and self.cover4[0] < max(self.end[0], self.start2[0]) + 50 and \
-            self.cover4[0] > min(self.end[0], self.start2[0]) - 50 and \
-            self.cover4[1] < max(self.end[1], self.start2[1]) + 50 and \
-            self.cover4[1] > min(self.end[1], self.start2[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start2, self.cover4) 
-            self.a_star_algorithm(self.canvas1, self.cover4, self.end) 
-
-        elif path2 == self.heuristic(self.start2, self.cover5) and self.cover5[0] < max(self.end[0], self.start2[0]) + 50 and \
-            self.cover5[0] > min(self.end[0], self.start2[0]) - 50 and \
-            self.cover5[1] < max(self.end[1], self.start2[1]) + 50 and \
-            self.cover5[1] > min(self.end[1], self.start2[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start2, self.cover5) 
-            self.a_star_algorithm(self.canvas1, self.cover5, self.end) 
-
-        else: 
-            self.a_star_algorithm(self.canvas1, self.start2, self.end)
-
-        # LOGIC FOR START 3
-        path3 = min(self.heuristic(self.start3, self.cover1), self.heuristic(self.start3, self.cover2), \
-            self.heuristic(self.start3, self.cover3), self.heuristic(self.start3, self.cover4), self.heuristic(self.start3, self.cover5))
-        
-        if path3 == self.heuristic(self.start3, self.cover1) and self.cover1[0] < max(self.end[0], self.start3[0]) + 50 and \
-            self.cover1[0] > min(self.end[0], self.start3[0]) - 50 and \
-            self.cover1[1] < max(self.end[1], self.start3[1]) + 50 and \
-            self.cover1[1] > min(self.end[1], self.start3[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start3, self.cover1) 
-            self.a_star_algorithm(self.canvas1, self.cover1, self.end) 
-
-        elif path3 == self.heuristic(self.start3, self.cover2) and self.cover2[0] < max(self.end[0], self.start3[0]) + 50 and \
-            self.cover2[0] > min(self.end[0], self.start3[0]) - 50 and \
-            self.cover2[1] < max(self.end[1], self.start3[1]) + 50 and \
-            self.cover2[1] > min(self.end[1], self.start3[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start3, self.cover2) 
-            self.a_star_algorithm(self.canvas1, self.cover2, self.end) 
-
-        elif path3 == self.heuristic(self.start3, self.cover3) and self.cover3[0] < max(self.end[0], self.start3[0]) + 50 and \
-            self.cover3[0] > min(self.end[0], self.start3[0]) - 50 and \
-            self.cover3[1] < max(self.end[1], self.start3[1]) + 50 and \
-            self.cover3[1] > min(self.end[1], self.start3[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start3, self.cover3) 
-            self.a_star_algorithm(self.canvas1, self.cover3, self.end) 
-
-        elif path3 == self.heuristic(self.start3, self.cover4) and self.cover4[0] < max(self.end[0], self.start3[0]) + 50 and \
-            self.cover4[0] > min(self.end[0], self.start3[0]) - 50 and \
-            self.cover4[1] < max(self.end[1], self.start3[1]) + 50 and \
-            self.cover4[1] > min(self.end[1], self.start3[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start3, self.cover4) 
-            self.a_star_algorithm(self.canvas1, self.cover4, self.end) 
-
-        elif path3 == self.heuristic(self.start3, self.cover5) and self.cover5[0] < max(self.end[0], self.start3[0]) + 50 and \
-            self.cover5[0] > min(self.end[0], self.start3[0]) - 50 and \
-            self.cover5[1] < max(self.end[1], self.start3[1]) + 50 and \
-            self.cover5[1] > min(self.end[1], self.start3[1]) - 50:
-            self.a_star_algorithm(self.canvas1, self.start3, self.cover5) 
-            self.a_star_algorithm(self.canvas1, self.cover5, self.end) 
-
-        else: 
-            self.a_star_algorithm(self.canvas1, self.start3, self.end)
+        self.find_cover_to_take(path1, self.start1)
+        self.find_cover_to_take(path2, self.start2)
+        self.find_cover_to_take(path3, self.start3)
         
     # function to make the path
-    def reconstruct_path(self, canvas1, came_from, current):
+    def reconstruct_path(self, canvas, came_from, current):
         total_path = []
         while current: # reconstruct the three paths
-            canvas1.create_image((current), image=self.path_color, anchor=NW) # getting an out of range error in this line
+            canvas.create_image((current), image=self.path_color, anchor=NW) # getting an out of range error in this line
             total_path.append(current[:])
             current = came_from[current[0]][current[1]]
+        # save the image after every path has been reconstructed
+        self.save(self.canvas, self.root)
         print("Path found!")
+
+    def save(self, canvas, root):
+        canvas.update()
+        canvas.postscript(file="Images/output.ps", colormode='color')
+        self.save_image()
+
+    def save_image(self):
+        TARGET_BOUNDS = (global_width, global_height)
+
+        pic = Image.open('Images/output.ps')
+        pic.load(scale=10)
+
+        if pic.mode in ('P', '1'):
+            pic = pic.convert("RGB")
+
+        ratio = min(TARGET_BOUNDS[0] / pic.size[0],
+                    TARGET_BOUNDS[1] / pic.size[1])
+        new_size = (int(pic.size[0] * ratio), int(pic.size[1] * ratio))
+
+        pic = pic.resize(new_size, Image.ANTIALIAS)
+
+        pic.save("Images/final.png")
 
 def main():
 
     # create the root
     root = Tk()
 
+    # convert the image to greyscale - take in the input and save as grayscale
+    bg_gray = Image.open('images/veterans.png').convert('L')
+    bg_gray.save('images/greyscale_bg.png')
+
     # for the background image - needed to pass it globally
-    bg = PhotoImage(file = 'images/veterans.png') # to add the background image
-    canvas1 = Canvas(width = 1000, height = 1000)
-    canvas1.pack(fill = 'both', expand = True)
-    canvas1.create_image(0,0,image = bg, anchor = 'nw')
+    bg = PhotoImage(file = 'images/greyscale_bg.png') # to add the background image
+
+    canvas = Canvas(width = global_width, height = global_height)
+    canvas.pack(fill = 'both', expand = True)
+    canvas.create_image(0,0,image = bg, anchor = 'nw')
 
     # --- load the colors (as png images of 1x1 pixel)  --- #
-    # load the color used for the starting squads [blue]
-    start_color = PhotoImage(file = 'images/start.png')
+    # load the color used for the starting squads [green]
+    start_color = PhotoImage(file = 'images/good_start.png')
     # load the color used for the end node [red]
-    end_color = PhotoImage(file = 'images/end.png')
-    # load the color used for the cover node [green]
-    cover_color = PhotoImage(file = 'images/cover.png')
+    end_color = PhotoImage(file = 'images/good_end.png')
+    # load the color used for the cover node [blue]
+    cover_color = PhotoImage(file = 'images/start.png')
     # load the color used for the obstacle node [magenta]
     obstacle_color = PhotoImage(file = 'images/obstacle.png')
-    # load the color used for the path node [turquois]
+    # load the color used for the path node [turquoise]
     path_color = PhotoImage(file = 'images/path3.png')
 
-    # need to pass the images to the app class - create the GUI
-    app = App(root, canvas1, start_color, end_color, cover_color, obstacle_color, path_color)
+    # pass the images to the app class - create the GUI
+    app = App(root, canvas, start_color, end_color, cover_color, obstacle_color, path_color, global_start_1, global_start_2, global_start_3, global_covers, global_obstacles)
 
     # start the algorithm when 'enter' is pressed
     root.bind('<Return>', app.find_path)
