@@ -10,3 +10,10 @@ Files of note include -
 3. Pathfinding.py - Pathfinding Subsystem code
 4. GaganMock.py - File to translate CSV to list objects that can be utilized in the pathfinding subsystem
 5. final_integrated.png - Final output image from runnning integrated systems
+6. coverplanneryolov4_training (2).py - Code of Yolov4 Model 
+7. JSONtoCSV.py - Converts JSON file of predictions from Yolov4 Model to CSV file
+8. RankingCSV.py - Converts CSV file to dataframe to rank the bounded boxes of the objects of the image for the strength of the cover from greatest to least
+9. DroneImageDetection - JPG file of detections of the model on an image that replicates the Drone Path Flight
+10. PoleFlightImage1 - JPG file of dtections of the model from the Pole Flight Test
+11. PoleFlightImage2 - JPG file of dtections of the model from the Pole Flight Test
+
