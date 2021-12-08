@@ -24,6 +24,7 @@ else:
 # Spatial Density Algorithm was meant to identify thin sparse foilage that would be ranked as cover instead of obstacle...due to change in project due to drone complications the spatial density algorithm is not useful anymore because the new images form the pole flight do not have many objects in the image and also on top of that does not have true objects of cover and obstacles my model was trained on and the spatial density algorithm was designed for and tested for
    #  row, col, _ = image.shape
 
+# Algorithm goes through pixels and compares neighboring pixels to see if pixel intensity is similiar...if not similiar then object is sparse and not good cover
   #   for i in row:
     #     for j in col:
     #         temp = double(x(i,j))
